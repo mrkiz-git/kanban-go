@@ -12,13 +12,8 @@ LOG_FILE="${LOG_FILE:-${LOG_DIR}/kanba.log}"
 PID_FILE="${KANBA_PID_FILE:-${ROOT}/data/kanba.pid}"
 BINARY="${KANBA_BINARY:-${ROOT}/bin/kanba}"
 
-pid_is_kanba() {
-  local pid=$1
-  kill -0 "$pid" 2>/dev/null || return 1
-  local cmd
-  cmd=$(ps -p "$pid" -o comm= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  [[ "$(basename "$BINARY")" == "$(basename "$cmd")" ]]
-}
+# shellcheck source=common.sh
+source "${ROOT}/scripts/common.sh"
 
 usage() {
   cat <<EOF
@@ -45,6 +40,8 @@ start_local() {
 
   export HOST="${HOST:-0.0.0.0}"
   export PORT="${PORT:-8080}"
+
+  ensure_port_for_kanba "$PORT"
 
   case "$mode" in
     verbose)

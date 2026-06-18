@@ -5,14 +5,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINER="${KANBA_CONTAINER:-kanba-go}"
 PID_FILE="${KANBA_PID_FILE:-${ROOT}/data/kanba.pid}"
 BINARY="${KANBA_BINARY:-${ROOT}/bin/kanba}"
+PORT="${PORT:-8080}"
 
-pid_is_kanba() {
-  local pid=$1
-  kill -0 "$pid" 2>/dev/null || return 1
-  local cmd
-  cmd=$(ps -p "$pid" -o comm= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  [[ "$(basename "$BINARY")" == "$(basename "$cmd")" ]]
-}
+# shellcheck source=common.sh
+source "${ROOT}/scripts/common.sh"
 
 stopped=0
 
@@ -26,6 +22,10 @@ if [[ -f "$PID_FILE" ]]; then
     echo "Removing stale pid file for pid ${pid}."
   fi
   rm -f "$PID_FILE"
+fi
+
+if stop_kanba_on_port "$PORT"; then
+  stopped=1
 fi
 
 if podman ps -q --filter "name=^${CONTAINER}$" | grep -q .; then
