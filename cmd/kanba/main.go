@@ -51,6 +51,7 @@ func main() {
 	}
 
 	users := store.NewUserStore(db)
+	boards := store.NewBoardStore(db)
 	adminHash, err := auth.HashPassword(cfg.AdminPassword)
 	if err != nil {
 		logger.Error("hash admin password", "error", err)
@@ -64,6 +65,7 @@ func main() {
 	tokens := auth.NewTokenService([]byte(cfg.JWTSecret))
 	deps := server.Dependencies{
 		Users:  users,
+		Boards: boards,
 		Tokens: tokens,
 	}
 

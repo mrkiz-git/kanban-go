@@ -134,9 +134,17 @@ Deliverables:
 
 ## part-07-board-api
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `internal/handler/board.go` — board CRUD, JSON Patch, and share handlers
+- [x] `internal/middleware/board.go` — `RequireBoardPerm` with read/write/owner checks
+- [x] `internal/auth/board_context.go` — board access in request context
+- [x] `internal/server/server.go` — wired `/api/boards` routes with auth and permission middleware
+- [x] `cmd/kanba/main.go` — injects `BoardStore` into server dependencies
+- [x] Handler, middleware, and server integration tests including card move via PATCH
 
 ---
 

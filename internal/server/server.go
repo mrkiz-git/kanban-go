@@ -17,6 +17,7 @@ import (
 
 type Dependencies struct {
 	Users  *store.UserStore
+	Boards *store.BoardStore
 	Tokens *auth.TokenService
 }
 
@@ -26,6 +27,11 @@ func New(cfg config.Config, deps Dependencies, logger *logging.Logger) *http.Ser
 	}
 
 	authHandler := handler.NewAuthHandler(deps.Users, deps.Tokens, cfg.SecureCookie)
+	boardHandler := handler.NewBoardHandler(deps.Boards, deps.Users)
+	authCfg := appmiddleware.AuthConfig{
+		Tokens: deps.Tokens,
+		Users:  deps.Users,
+	}
 
 	r := chi.NewRouter()
 	// RealIP is intentionally omitted — chi's default trusts all proxies; add only behind a trusted reverse proxy.
@@ -41,10 +47,7 @@ func New(cfg config.Config, deps Dependencies, logger *logging.Logger) *http.Ser
 			r.Post("/login", authHandler.Login)
 
 			r.Group(func(r chi.Router) {
-				r.Use(appmiddleware.Auth(appmiddleware.AuthConfig{
-					Tokens: deps.Tokens,
-					Users:  deps.Users,
-				}))
+				r.Use(appmiddleware.Auth(authCfg))
 				r.Get("/me", authHandler.Me)
 				r.Post("/refresh", authHandler.Refresh)
 				r.Post("/logout", authHandler.Logout)
@@ -52,20 +55,47 @@ func New(cfg config.Config, deps Dependencies, logger *logging.Logger) *http.Ser
 		})
 
 		r.Group(func(r chi.Router) {
-			r.Use(appmiddleware.Auth(appmiddleware.AuthConfig{
-				Tokens: deps.Tokens,
-				Users:  deps.Users,
-			}))
-			r.Get("/boards", func(w http.ResponseWriter, r *http.Request) {
-				handler.WriteJSON(w, http.StatusOK, map[string][]any{"boards": []any{}})
+			r.Use(appmiddleware.Auth(authCfg))
+			r.Get("/boards", boardHandler.List)
+			r.Post("/boards", boardHandler.Create)
+
+			r.Route("/boards/{id}", func(r chi.Router) {
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionRead,
+				})).Get("/", boardHandler.Get)
+
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionWrite,
+				})).Put("/", boardHandler.Update)
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionWrite,
+				})).Patch("/", boardHandler.Patch)
+
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionOwner,
+				})).Delete("/", boardHandler.Delete)
+
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionOwner,
+				})).Get("/shares", boardHandler.ListShares)
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionOwner,
+				})).Post("/shares", boardHandler.CreateShare)
+				r.With(appmiddleware.RequireBoardPerm(appmiddleware.BoardPermConfig{
+					Boards: deps.Boards,
+					Min:    domain.PermissionOwner,
+				})).Delete("/shares/{userId}", boardHandler.RevokeShare)
 			})
 		})
 
 		r.Route("/admin", func(r chi.Router) {
-			r.Use(appmiddleware.Auth(appmiddleware.AuthConfig{
-				Tokens: deps.Tokens,
-				Users:  deps.Users,
-			}))
+			r.Use(appmiddleware.Auth(authCfg))
 			r.Use(appmiddleware.RequireRole(domain.RoleAdmin))
 			r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
 				handler.WriteJSON(w, http.StatusOK, map[string][]any{"users": []any{}})
