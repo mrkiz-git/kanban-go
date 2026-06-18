@@ -49,9 +49,16 @@ _No open issues._
 
 ## part-03-scaffolding
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `go.mod` — module `github.com/mrkiz-git/kanba-go`, chi router
+- [x] `cmd/kanba/main.go` + `internal/` — server with `GET /api/health`
+- [x] `web/` — minimal Next.js static-export stub for Containerfile frontend stage
+- [x] `Containerfile` — multi-stage: Node → Go → Alpine
+- [x] `scripts/start.sh` — builds and runs via Podman
 
 ---
 

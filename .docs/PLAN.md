@@ -26,59 +26,104 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Update `BOARD_SCHEMA.md`, `DATABASE.md`, `API.md`, and `AUTH.md` to reflect Go idioms, multi-board relations, and RBAC (Role-Based Access Control).
 - Define MCP Server schemas in `MCP.md`.
 - **Goal:** All contract docs agree on Go implementation details.
+- **QA Testing Criteria:**
+  - Verify `BOARD_SCHEMA.md` contains valid multi-board definitions.
+  - Verify `API.md` outlines all RBAC endpoints.
+  - Verify `AUTH.md` defines the Go JWT structure.
 
 ### Part 2: UI Planning
 - Create `UI.md` to define design tokens, color palette, wireframes, and component hierarchy.
 - Include UI plans for the Admin Panel, multi-board switching, and sharing dialogs.
 - **Goal:** User approves `UI.md` specifications.
+- **QA Testing Criteria:**
+  - Verify `UI.md` clearly defines color tokens.
+  - Verify Admin Panel and multi-board switching wireframes exist.
+  - Obtain explicit sign-off from the user before proceeding.
 
 ### Part 3: Scaffolding (Go + Podman)
 - Initialize Go module (`go mod init`).
 - Create Go backend structure with a router and `GET /api/health`.
 - Update `Containerfile` to use a multi-stage build: Node (Next.js) -> Go -> Alpine.
 - **Goal:** `scripts/start.sh` spins up the Go server via Podman.
+- **QA Testing Criteria:**
+  - Run `go test ./...` successfully (even if empty).
+  - Verify `GET /api/health` returns HTTP 200.
+  - Verify `scripts/start.sh` builds and runs the container without errors.
 
 ### Part 4: Frontend (Static Base)
 - Next.js static export (`output: 'export'`) served by the Go backend at `/`.
 - Implement basic routing and empty state layouts.
 - **Goal:** Browser hits `/` and sees the base app shell.
+- **QA Testing Criteria:**
+  - Verify Next.js build (`npm run build`) completes successfully.
+  - Load `/` in browser and confirm UI shell renders.
+  - Verify no console errors on initial load.
 
 ### Part 5: Auth, Security, & User Management
 - Implement JWT generation and validation in Go (`golang-jwt/jwt`).
 - Build user management API (Registration, Login, RBAC for Admins).
 - **Goal:** Unauthenticated users are redirected to login. Role-based routing is established.
+- **QA Testing Criteria:**
+  - Verify user registration API creates a valid user.
+  - Verify login API returns a valid JWT.
+  - Attempt to access protected route without JWT and confirm 401 Unauthorized.
+  - Verify admin endpoints reject non-admin users with 403 Forbidden.
 
 ### Part 6: Database Modeling & Go Integration
 - Integrate pure-Go SQLite (`modernc.org/sqlite`).
 - Implement schema migrations (Users, Boards, Permissions/Shares).
 - Seed initial admin user.
 - **Goal:** Database survives container restarts and supports RBAC.
+- **QA Testing Criteria:**
+  - Verify SQLite file is generated successfully on startup.
+  - Run database schema migration scripts and confirm success.
+  - Verify default Admin user is seeded correctly in the database.
 
 ### Part 7: Core Board API & Sharing
 - `GET`, `POST`, `PUT`, `PATCH`, `DELETE` for multiple boards.
 - Implement collaborative sharing endpoints (granting access to users).
 - Implement WebSocket broadcasting for real-time sync.
 - **Goal:** Full multi-board CRUD and sharing persists to SQLite.
+- **QA Testing Criteria:**
+  - Create a new board and verify persistence.
+  - Grant read-only access to User B; verify User B can read but not update.
+  - Update board state and verify WebSocket broadcast reaches connected clients.
 
 ### Part 8: Admin Panel
 - Create a frontend `/admin` route (protected by admin role).
 - Build APIs to list/edit all users and view global board statistics.
 - **Goal:** Admins can securely manage the system.
+- **QA Testing Criteria:**
+  - Log in as Admin and access `/admin`; verify success.
+  - Log in as Regular User and access `/admin`; verify access denied.
+  - Use Admin API to successfully suspend a user.
 
 ### Part 9: MCP Server Integration
 - Implement MCP Server protocol on a dedicated endpoint or stdio wrapper in Go.
 - Expose tools: `get_boards`, `read_board`, `update_card`, `add_card`.
 - **Goal:** External AI agents can securely interact with the user's boards via MCP.
+- **QA Testing Criteria:**
+  - Connect a local MCP client to the server.
+  - Execute `get_boards` tool and verify correct JSON schema response.
+  - Execute `update_card` tool and verify database update.
 
 ### Part 10: Built-in AI Chat
 - Go backend acts as an OpenAI client to provide an in-app chat assistant.
 - Use Structured Outputs to parse AI intentions into granular board updates.
 - **Goal:** Chat endpoint can answer questions and apply valid board updates.
+- **QA Testing Criteria:**
+  - Send a natural language prompt via chat API.
+  - Verify backend contacts OpenAI and returns a valid structured JSON output.
+  - Verify board update occurs via the structured intent.
 
 ### Part 11: AI Sidebar UI & Real-time Updates
 - Build Chat sidebar UI.
 - Hook up WebSockets to auto-refresh the Kanban board when the AI (or MCP or collaborators) modifies it.
 - **Goal:** Fluid user experience where chatting with AI visibly updates the board in real-time.
+- **QA Testing Criteria:**
+  - Interact with AI sidebar in UI; verify loading states render correctly.
+  - Trigger an AI board update and verify WebSocket pushes UI refresh automatically.
+  - Verify multi-user collaboration sees AI updates simultaneously.
 
 ---
 
