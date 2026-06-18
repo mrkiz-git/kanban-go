@@ -8,7 +8,11 @@ Track unresolved issues per feature branch. The agent checks this file before st
 
 ## main
 
-No active development. Feature work happens on part branches.
+_Integration branch — parts 1–7 merged for testing and deployment._
+
+Includes: contracts, UI planning docs, scaffolding, frontend base, auth, board database layer, and board REST API.
+
+_No open issues._
 
 ---
 
