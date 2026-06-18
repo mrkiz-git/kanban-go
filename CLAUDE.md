@@ -1,7 +1,7 @@
 # Kanba Go — Claude Instructions
 
 ## Agent Persona
-@.agents/AGENT.md
+@.agents/AGENTS.md
 
 ## Rules
 

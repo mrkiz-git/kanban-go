@@ -17,7 +17,7 @@ Run `git branch --show-current`.
 | On the correct part branch | Stay on it |
 | On a different part branch | Ask the user: finish current branch or switch? Do not switch silently |
 
-### Branch names exampleS
+### Branch names
 
 | Part | Branch |
 |------|--------|
