@@ -2,7 +2,7 @@
 
 Kanban web app with a Go backend, Next.js static frontend, and MCP integration for AI agents.
 
-**Status:** Part 3 (scaffolding) — Go server with health check, Podman container build, structured logging.
+**Status:** Part 4 (frontend base) — Go serves Next.js static export with app shell layouts.
 
 ## Prerequisites
 
@@ -17,6 +17,7 @@ Kanban web app with a Go backend, Next.js static frontend, and MCP integration f
 ```bash
 ./scripts/start.sh container
 curl http://localhost:8080/api/health
+curl -I http://localhost:8080/boards/
 ./scripts/stop.sh
 ```
 
@@ -47,6 +48,7 @@ Expected health response:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `STATIC_DIR` | `web/out` | Path to Next.js static export |
 | `HOST_PORT` | `8080` | Host port mapped to the container (`PORT` is an alias) |
 | `CONTAINER_PORT` | `8080` | Port the Go server listens on inside the container |
 | `LOG_LEVEL` | `info` | Log level: `error`, `info`, or `debug` |
@@ -78,10 +80,18 @@ Three levels, least to most verbose:
 go run ./cmd/kanba
 ```
 
-**Frontend stub** (static export; served by Go in Part 4):
+**Frontend** (static export served by Go):
 
 ```bash
-cd web && npm install && npm run dev
+cd web && npm install && npm run build
+go run ./cmd/kanba
+# open http://localhost:8080/boards/
+```
+
+For hot reload during UI work:
+
+```bash
+cd web && npm run dev
 ```
 
 **Tests:**
@@ -102,7 +112,7 @@ podman run --rm -p 8080:8080 kanba-go:local
 ```
 cmd/kanba/          Go entrypoint
 internal/           Server, handlers, config, logging
-web/                Next.js static export (stub)
+web/                Next.js static export (AppShell, routes)
 scripts/start.sh    Start verbose, background, or container mode
 scripts/stop.sh     Stop background server or container
 Containerfile       Multi-stage: Node → Go → Alpine

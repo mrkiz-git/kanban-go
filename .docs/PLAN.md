@@ -71,6 +71,12 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Build frontend `/login` and `/register` pages.
 - Implement client-side auth state and protected route redirects.
 - **Goal:** Users can register, login, and access protected routes. Database persists and supports RBAC.
+- **QA Testing Criteria:**
+  - Verify user registration creates a valid user and hashes the password in SQLite.
+  - Verify login issues a valid JWT and client saves it properly.
+  - Verify accessing protected routes without a valid JWT returns 401 Unauthorized.
+  - Verify the frontend correctly redirects unauthenticated users away from protected pages.
+  - Verify SQLite database persists across application restarts.
 
 ### Part 5: Core Board & Kanban UI (Full-Stack)
 - Implement database schema migrations for Boards, Columns, and Cards.
@@ -79,6 +85,12 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Implement drag-and-drop Kanban UI (`@hello-pangea/dnd`) with optimistic updates.
 - Implement inline editing for boards/columns and `CardModal` for editing cards and Markdown.
 - **Goal:** Users can fully manage their own boards, columns, and cards via a polished UI.
+- **QA Testing Criteria:**
+  - Verify complete CRUD operations for boards, columns, and cards via API and UI.
+  - Verify drag-and-drop correctly updates card positions and column associations.
+  - Verify optimistic updates immediately reflect UI changes and gracefully revert on API failure.
+  - Verify CardModal correctly parses and renders Markdown inputs, including attachments.
+  - Verify users cannot view, edit, or delete boards they do not own or have access to.
 
 ### Part 6: Real-time Sync & Sharing (Full-Stack)
 - Implement schema migrations for Permissions/Shares.
@@ -87,12 +99,23 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Implement backend WebSocket broadcasting for real-time sync.
 - Hook up frontend WebSocket client to auto-refresh the Kanban board.
 - **Goal:** Users can share boards, and changes reflect instantly across active sessions.
+- **QA Testing Criteria:**
+  - Verify board owners can successfully grant read-only and read-write access to other users.
+  - Verify shared users have appropriate access constraints applied on both frontend and backend.
+  - Verify WebSocket broadcasts accurately push card/column updates to all connected clients viewing the board.
+  - Verify the frontend auto-reconnects to the WebSocket server upon connection drop.
+  - Verify users cannot share boards they do not own.
 
 ### Part 7: Admin Panel (Full-Stack)
 - Build backend APIs to list/edit all users and view global board statistics.
 - Create frontend `/admin` routes (protected by admin role).
 - Build the `AdminUsersPage` table, user editing modals, and `AdminStatsPage`.
 - **Goal:** Admins can securely manage the system users and view stats.
+- **QA Testing Criteria:**
+  - Verify only users with an 'Admin' role can access the frontend `/admin` dashboard and backend admin endpoints.
+  - Verify standard users receive a 403 Forbidden when attempting to access admin routes.
+  - Verify admins can successfully suspend, delete, or edit roles for other users.
+  - Verify the `AdminStatsPage` correctly computes and displays global board and user statistics.
 
 ### Part 8: AI Chat & MCP Integration (Full-Stack)
 - Implement MCP Server protocol in Go to expose board management tools.
@@ -100,6 +123,11 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Build frontend AI Chat sidebar UI.
 - Hook up WebSockets to auto-refresh the Kanban board when the AI or MCP modifies it.
 - **Goal:** Chat endpoint answers questions, external AI agents can connect, and chatting visibly updates the board in real-time.
+- **QA Testing Criteria:**
+  - Verify the in-app chat interface responds to user queries accurately based on board context.
+  - Verify any board modifications made by the AI immediately trigger WebSocket refreshes on the UI.
+  - Verify an external MCP client can successfully discover and execute board management tools via the Go server.
+  - Verify AI and MCP tool executions strictly adhere to the authenticated user's RBAC permissions.
 
 ---
 

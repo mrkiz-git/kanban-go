@@ -12,6 +12,14 @@ LOG_FILE="${LOG_FILE:-${LOG_DIR}/kanba.log}"
 PID_FILE="${KANBA_PID_FILE:-${ROOT}/data/kanba.pid}"
 BINARY="${KANBA_BINARY:-${ROOT}/bin/kanba}"
 
+pid_is_kanba() {
+  local pid=$1
+  kill -0 "$pid" 2>/dev/null || return 1
+  local cmd
+  cmd=$(ps -p "$pid" -o comm= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  [[ "$(basename "$BINARY")" == "$(basename "$cmd")" ]]
+}
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [verbose|background|container]
@@ -29,6 +37,9 @@ start_local() {
 
   mkdir -p "${ROOT}/data" "${LOG_DIR}" "${ROOT}/bin"
 
+  echo "Building frontend..."
+  (cd "${ROOT}/web" && npm ci && npm run build)
+
   echo "Building local server..."
   (cd "$ROOT" && go build -o "$BINARY" ./cmd/kanba)
 
@@ -45,9 +56,13 @@ start_local() {
       exec "$BINARY"
       ;;
     background)
-      if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-        echo "Kanba is already running in the background (pid $(cat "$PID_FILE"))."
-        exit 1
+      if [[ -f "$PID_FILE" ]]; then
+        old_pid=$(cat "$PID_FILE")
+        if pid_is_kanba "$old_pid"; then
+          echo "Kanba is already running in the background (pid ${old_pid})."
+          exit 1
+        fi
+        rm -f "$PID_FILE"
       fi
 
       export LOG_LEVEL="${LOG_LEVEL:-info}"
@@ -59,8 +74,14 @@ start_local() {
 
       cd "$ROOT"
       nohup "$BINARY" </dev/null >/dev/null 2>&1 &
-      echo $! >"$PID_FILE"
-      echo "Started Kanba (pid $(cat "$PID_FILE"))."
+      pid=$!
+      sleep 1
+      if ! pid_is_kanba "$pid"; then
+        echo "Kanba failed to start; check logs at ${LOG_FILE}" >&2
+        exit 1
+      fi
+      echo "$pid" >"$PID_FILE"
+      echo "Started Kanba (pid ${pid})."
       ;;
     *)
       echo "Unknown local mode: $mode" >&2

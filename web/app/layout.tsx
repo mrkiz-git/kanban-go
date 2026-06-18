@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Kanba",
+  description: "Kanban boards with AI and MCP integration",
 };
 
 export default function RootLayout({
@@ -11,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }
