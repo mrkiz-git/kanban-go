@@ -19,24 +19,27 @@ func Static(root string) http.Handler {
 			return
 		}
 
-		filePath, ok := resolveStaticFile(root, r.URL.Path)
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
+		filePath, _ := resolveStaticFile(root, r.URL.Path, indexPath)
 
 		if _, err := os.Stat(filePath); err != nil {
-			filePath = indexPath
+			if os.IsNotExist(err) {
+				http.NotFound(w, r)
+				return
+			}
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
 		}
 
 		http.ServeFile(w, r, filePath)
 	})
 }
 
-func resolveStaticFile(root, urlPath string) (string, bool) {
+// resolveStaticFile returns the file to serve and whether it matched an explicit
+// asset (true) or is the SPA index.html fallback (false).
+func resolveStaticFile(root, urlPath, indexPath string) (string, bool) {
 	clean := path.Clean(urlPath)
 	if clean == "." || clean == "/" {
-		return filepath.Join(root, "index.html"), true
+		return indexPath, false
 	}
 
 	rel := strings.TrimPrefix(clean, "/")
@@ -55,10 +58,10 @@ func resolveStaticFile(root, urlPath string) (string, bool) {
 			continue
 		}
 		if !strings.HasPrefix(filepath.Clean(candidate), root) {
-			return "", false
+			continue
 		}
 		return candidate, true
 	}
 
-	return filepath.Join(root, "index.html"), true
+	return indexPath, false
 }

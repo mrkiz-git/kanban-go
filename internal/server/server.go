@@ -17,6 +17,7 @@ func New(cfg config.Config, logger *logging.Logger) *http.Server {
 	}
 
 	r := chi.NewRouter()
+	// RealIP is intentionally omitted — chi's default trusts all proxies; add only behind a trusted reverse proxy.
 	r.Use(middleware.RequestID)
 	r.Use(requestLogger(logger))
 	r.Use(middleware.Recoverer)
@@ -43,7 +44,7 @@ func requestLogger(logger *logging.Logger) func(http.Handler) http.Handler {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			next.ServeHTTP(ww, r)
 
-			logger.Info(
+			logger.Debug(
 				"request",
 				"method", r.Method,
 				"path", r.URL.Path,

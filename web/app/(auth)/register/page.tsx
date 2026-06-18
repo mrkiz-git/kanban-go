@@ -32,7 +32,7 @@ export default function RegisterPage() {
                 className="mt-1 w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm"
               />
             </label>
-            <Button type="button" className="w-full">
+            <Button type="submit" className="w-full">
               Register
             </Button>
           </form>

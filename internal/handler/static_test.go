@@ -66,6 +66,45 @@ func TestStatic(t *testing.T) {
 	}
 }
 
+func TestStaticStatError(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses directory permission checks")
+	}
+
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "index.html"), "<html>home</html>")
+	if err := os.Chmod(root, 0o000); err != nil {
+		t.Fatalf("chmod root: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(root, 0o755)
+	})
+
+	handler := Static(root)
+	req := httptest.NewRequest(http.MethodGet, "/boards/demo", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestStaticMissingIndex(t *testing.T) {
+	root := t.TempDir()
+	handler := Static(root)
+
+	req := httptest.NewRequest(http.MethodGet, "/boards/demo", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
 func writeFile(t *testing.T, path, contents string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

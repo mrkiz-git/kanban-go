@@ -76,6 +76,16 @@ Deliverables:
 - [x] `web/` — Tailwind v4, AppShell, route pages with empty states per `UI.md`
 - [x] `scripts/start.sh` — builds frontend before local server start
 
+Code review fixes (all 8 issues resolved):
+- [x] Auth forms: submit buttons use `type="submit"`
+- [x] Request logger emits at `Debug` level per PLAN.md QA
+- [x] Static handler returns 500 on non-notexist `os.Stat` errors
+- [x] Background start validates PID belongs to kanba binary
+- [x] `middleware.RealIP` omission documented in server.go
+- [x] Logger: deduplicated file-open logic in `NewFromConfig`
+- [x] Logger: replaced `dirOf` with `filepath.Dir`
+- [x] Static handler: removed dead `http.NotFound` branch
+
 ---
 
 ## part-05-auth

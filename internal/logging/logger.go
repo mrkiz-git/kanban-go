@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -69,36 +70,34 @@ func New(level Level, out io.Writer) *Logger {
 func NewFromConfig(level Level, logFile string) (*Logger, error) {
 	logStdout := os.Getenv("LOG_STDOUT") != "0" && strings.ToLower(os.Getenv("LOG_STDOUT")) != "false"
 
-	var out io.Writer
+	var out io.Writer = os.Stdout
 
-	switch {
-	case logFile != "" && !logStdout:
-		if err := os.MkdirAll(dirOf(logFile), 0o755); err != nil {
-			return nil, fmt.Errorf("create log directory: %w", err)
-		}
-
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if logFile != "" {
+		file, err := openLogFile(logFile)
 		if err != nil {
-			return nil, fmt.Errorf("open log file: %w", err)
+			return nil, err
 		}
-
-		out = file
-	case logFile != "":
-		if err := os.MkdirAll(dirOf(logFile), 0o755); err != nil {
-			return nil, fmt.Errorf("create log directory: %w", err)
+		if logStdout {
+			out = io.MultiWriter(os.Stdout, file)
+		} else {
+			out = file
 		}
-
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return nil, fmt.Errorf("open log file: %w", err)
-		}
-
-		out = io.MultiWriter(os.Stdout, file)
-	default:
-		out = os.Stdout
 	}
 
 	return New(level, out), nil
+}
+
+func openLogFile(logFile string) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(logFile), 0o755); err != nil {
+		return nil, fmt.Errorf("create log directory: %w", err)
+	}
+
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("open log file: %w", err)
+	}
+
+	return file, nil
 }
 
 func (l *Logger) Error(msg string, args ...any) {
@@ -140,11 +139,4 @@ func formatLine(level Level, msg string, args ...any) string {
 	}
 
 	return fmt.Sprintf("%s %s %s %s", time.Now().Format(time.RFC3339), level.String(), msg, strings.Join(pairs, " "))
-}
-
-func dirOf(path string) string {
-	if i := strings.LastIndex(path, "/"); i >= 0 {
-		return path[:i]
-	}
-	return "."
 }
