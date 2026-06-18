@@ -14,9 +14,16 @@ No active development. Feature work happens on part branches.
 
 ## part-01-contracts
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `.docs/BOARD_SCHEMA.md` — Go domain types, multi-board model, JSON Patch paths, WebSocket events
+- [x] `.docs/DATABASE.md` — SQLite schema, migrations, repository interfaces
+- [x] `.docs/API.md` — REST, WebSocket, admin, and chat endpoints
+- [x] `.docs/AUTH.md` — JWT, RBAC, board-level permissions
+- [x] `.docs/MCP.md` — MCP tool schemas (`get_boards`, `read_board`, `add_card`, `update_card`)
 
 ---
 
