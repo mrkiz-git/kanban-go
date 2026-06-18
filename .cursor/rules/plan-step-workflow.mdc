@@ -1,0 +1,56 @@
+---
+description: Pre-flight checklist when starting a PLAN.md development step
+alwaysApply: true
+---
+
+# Plan Step Workflow
+
+When the user asks to develop, start, or continue a plan step (e.g. "Start Part 3", "Develop Part 1"), run this checklist **before writing or editing any code**.
+
+## 1. Identify the step
+
+- Read `.docs/PLAN.md` and confirm the requested part number, scope, and **Goal**.
+- Map the part to its branch name (see table below).
+
+## 2. Branch check
+
+Run `git branch --show-current`.
+
+| Situation | Action |
+|-----------|--------|
+| On `main` | Create and checkout the part branch: `git checkout -b <branch-name>` |
+| On the correct part branch | Stay on it |
+| On a different part branch | Ask the user: finish current branch or switch? Do not switch silently |
+
+### Branch names
+
+| Part | Branch |
+|------|--------|
+| 1 | `part-01-contracts` |
+| 2 | `part-02-ui-planning` |
+| 3 | `part-03-scaffolding` |
+| 4 | `part-04-frontend-base` |
+| 5 | `part-05-auth` |
+| 6 | `part-06-database` |
+| 7 | `part-07-board-api` |
+| 8 | `part-08-admin-panel` |
+| 9 | `part-09-mcp` |
+| 10 | `part-10-ai-chat` |
+| 11 | `part-11-ai-sidebar` |
+
+## 3. Resolve open issues first
+
+- Read `.docs/branch-status.md` for the current branch.
+- If any issue is unchecked (`- [ ]`), fix it before starting new work.
+- After fixing, mark it solved (`- [x]`) in `.docs/branch-status.md`.
+- Add new issues discovered during work as unchecked items under the current branch.
+
+## 4. Report before implementing
+
+Tell the user:
+
+1. Current branch name
+2. Open issues found and what was fixed (or "none")
+3. Part goal from PLAN.md
+
+Only after this report, begin implementation.
