@@ -32,53 +32,48 @@ This plan adopts the original Kanban web app architecture but transitions the ba
 - Include UI plans for the Admin Panel, multi-board switching, and sharing dialogs.
 - **Goal:** User approves `UI.md` specifications.
 
-### Part 3: Scaffolding (Go + Podman)
-- Initialize Go module (`go mod init`).
-- Create Go backend structure with a router and `GET /api/health`.
+### Part 3: Base Scaffolding (Full-Stack)
+- Initialize Go module (`go mod init`) and routing (`GET /api/health`).
+- Initialize Next.js static export (`output: 'export'`) served by the Go backend at `/`.
+- Implement basic Next.js routing and empty AppShell layouts.
 - Update `Containerfile` to use a multi-stage build: Node (Next.js) -> Go -> Alpine.
-- **Goal:** `scripts/start.sh` spins up the Go server via Podman.
+- **Goal:** `scripts/start.sh` spins up the server, browser hits `/` and sees the base app shell.
 
-### Part 4: Frontend (Static Base)
-- Next.js static export (`output: 'export'`) served by the Go backend at `/`.
-- Implement basic routing and empty state layouts.
-- **Goal:** Browser hits `/` and sees the base app shell.
+### Part 4: Database, Auth & User Management (Full-Stack)
+- Integrate pure-Go SQLite (`modernc.org/sqlite`) with schema migrations for Users.
+- Implement backend JWT generation and auth APIs (Registration, Login, RBAC).
+- Build frontend `/login` and `/register` pages.
+- Implement client-side auth state and protected route redirects.
+- **Goal:** Users can register, login, and access protected routes. Database persists and supports RBAC.
 
-### Part 5: Auth, Security, & User Management
-- Implement JWT generation and validation in Go (`golang-jwt/jwt`).
-- Build user management API (Registration, Login, RBAC for Admins).
-- **Goal:** Unauthenticated users are redirected to login. Role-based routing is established.
+### Part 5: Core Board & Kanban UI (Full-Stack)
+- Implement database schema migrations for Boards, Columns, and Cards.
+- Build backend APIs for multiple boards CRUD (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`).
+- Build frontend `BoardListPage` (`/boards`) and `BoardPage` (`/boards/:id`).
+- Implement drag-and-drop Kanban UI (`@hello-pangea/dnd`) with optimistic updates.
+- Implement inline editing for boards/columns and `CardModal` for editing cards and Markdown.
+- **Goal:** Users can fully manage their own boards, columns, and cards via a polished UI.
 
-### Part 6: Database Modeling & Go Integration
-- Integrate pure-Go SQLite (`modernc.org/sqlite`).
-- Implement schema migrations (Users, Boards, Permissions/Shares).
-- Seed initial admin user.
-- **Goal:** Database survives container restarts and supports RBAC.
+### Part 6: Real-time Sync & Sharing (Full-Stack)
+- Implement schema migrations for Permissions/Shares.
+- Implement backend collaborative sharing endpoints.
+- Build frontend Sharing Dialog to grant access to other users.
+- Implement backend WebSocket broadcasting for real-time sync.
+- Hook up frontend WebSocket client to auto-refresh the Kanban board.
+- **Goal:** Users can share boards, and changes reflect instantly across active sessions.
 
-### Part 7: Core Board API & Sharing
-- `GET`, `POST`, `PUT`, `PATCH`, `DELETE` for multiple boards.
-- Implement collaborative sharing endpoints (granting access to users).
-- Implement WebSocket broadcasting for real-time sync.
-- **Goal:** Full multi-board CRUD and sharing persists to SQLite.
+### Part 7: Admin Panel (Full-Stack)
+- Build backend APIs to list/edit all users and view global board statistics.
+- Create frontend `/admin` routes (protected by admin role).
+- Build the `AdminUsersPage` table, user editing modals, and `AdminStatsPage`.
+- **Goal:** Admins can securely manage the system users and view stats.
 
-### Part 8: Admin Panel
-- Create a frontend `/admin` route (protected by admin role).
-- Build APIs to list/edit all users and view global board statistics.
-- **Goal:** Admins can securely manage the system.
-
-### Part 9: MCP Server Integration
-- Implement MCP Server protocol on a dedicated endpoint or stdio wrapper in Go.
-- Expose tools: `get_boards`, `read_board`, `update_card`, `add_card`.
-- **Goal:** External AI agents can securely interact with the user's boards via MCP.
-
-### Part 10: Built-in AI Chat
+### Part 8: AI Chat & MCP Integration (Full-Stack)
+- Implement MCP Server protocol in Go to expose board management tools.
 - Go backend acts as an OpenAI client to provide an in-app chat assistant.
-- Use Structured Outputs to parse AI intentions into granular board updates.
-- **Goal:** Chat endpoint can answer questions and apply valid board updates.
-
-### Part 11: AI Sidebar UI & Real-time Updates
-- Build Chat sidebar UI.
-- Hook up WebSockets to auto-refresh the Kanban board when the AI (or MCP or collaborators) modifies it.
-- **Goal:** Fluid user experience where chatting with AI visibly updates the board in real-time.
+- Build frontend AI Chat sidebar UI.
+- Hook up WebSockets to auto-refresh the Kanban board when the AI or MCP modifies it.
+- **Goal:** Chat endpoint answers questions, external AI agents can connect, and chatting visibly updates the board in real-time.
 
 ---
 
