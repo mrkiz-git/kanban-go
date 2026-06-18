@@ -14,9 +14,28 @@ No active development. Feature work happens on part branches.
 
 ## part-01-contracts
 
-_Status: not started_
+_Status: complete (post-review fixes applied)_
 
 _No open issues._
+
+Deliverables:
+- [x] `.docs/BOARD_SCHEMA.md` — Go domain types, multi-board model, JSON Patch paths, WebSocket events
+- [x] `.docs/DATABASE.md` — SQLite schema, migrations, repository interfaces
+- [x] `.docs/API.md` — REST, WebSocket, admin, and chat endpoints
+- [x] `.docs/AUTH.md` — JWT, RBAC, board-level permissions
+- [x] `.docs/MCP.md` — MCP tool schemas (`get_boards`, `read_board`, `add_card`, `update_card`)
+
+Design review fixes (all 10 issues resolved):
+- [x] AUTH: Middleware now accepts Bearer header OR httpOnly cookie (was contradictory)
+- [x] DATABASE: Admin override is step 1 in access resolution, not step 3 (was defeatable by share row)
+- [x] DATABASE: Attachment auth JOIN path defined (was unspecified for headerless routes)
+- [x] API + BOARD_SCHEMA: ETag changed from `updatedAt` timestamp to monotonic `version` integer
+- [x] MCP: `update_card` gained optional `board_version` concurrency guard
+- [x] BOARD_SCHEMA: JSON Patch retry-on-409 contract documented
+- [x] BOARD_SCHEMA + DATABASE: `SharePermission` type introduced (excludes `owner`; `Share()` interface updated)
+- [x] MCP: `update_card` schema enforces at least one update field via `anyOf`
+- [x] MCP: stdio token 24h expiry limitation documented
+- [x] BOARD_SCHEMA + API + MCP: `card.created` event added; deterministic dispatch rules for `card.updated` vs `card.moved`
 
 ---
 
