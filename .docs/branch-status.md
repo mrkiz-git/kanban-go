@@ -49,17 +49,42 @@ _No open issues._
 
 ## part-03-scaffolding
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `go.mod` — module `github.com/mrkiz-git/kanba-go`, chi router
+- [x] `cmd/kanba/main.go` + `internal/` — server with `GET /api/health`
+- [x] `web/` — minimal Next.js static-export stub for Containerfile frontend stage
+- [x] `Containerfile` — multi-stage: Node → Go → Alpine
+- [x] `scripts/start.sh` — verbose, background, and container run modes
+- [x] `scripts/stop.sh` — stop background server or Podman container
+- [x] `internal/logging` — structured logging with `error`, `info`, and `debug` levels
 
 ---
 
 ## part-04-frontend-base
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `internal/handler/static.go` — static file server with SPA fallback to `index.html`
+- [x] `internal/server/server.go` — serves Next.js export at `/`, API at `/api/*`
+- [x] `web/` — Tailwind v4, AppShell, route pages with empty states per `UI.md`
+- [x] `scripts/start.sh` — builds frontend before local server start
+
+Code review fixes (all 8 issues resolved):
+- [x] Auth forms: submit buttons use `type="submit"`
+- [x] Request logger emits at `Debug` level per PLAN.md QA
+- [x] Static handler returns 500 on non-notexist `os.Stat` errors
+- [x] Background start validates PID belongs to kanba binary
+- [x] `middleware.RealIP` omission documented in server.go
+- [x] Logger: deduplicated file-open logic in `NewFromConfig`
+- [x] Logger: replaced `dirOf` with `filepath.Dir`
+- [x] Static handler: removed dead `http.NotFound` branch
 
 ---
 

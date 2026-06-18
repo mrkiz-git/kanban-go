@@ -1,0 +1,13 @@
+.git
+.cursor
+.claude
+.agents
+.docs
+node_modules
+web/node_modules
+web/.next
+web/out
+*.db
+*.sqlite
+.env
+.env.*
