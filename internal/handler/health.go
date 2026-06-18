@@ -13,10 +13,17 @@ type healthResponse struct {
 }
 
 func Health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(healthResponse{
+	resp := healthResponse{
 		Status:  "ok",
 		Version: config.Version,
-	})
+	}
+
+	data, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
 }

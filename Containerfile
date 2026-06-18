@@ -3,7 +3,7 @@ FROM docker.io/node:22-alpine AS frontend
 
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 COPY web/ ./
 RUN npm run build
@@ -27,16 +27,20 @@ FROM docker.io/alpine:3.21
 
 RUN apk add --no-cache ca-certificates
 
+RUN addgroup -S kanba && adduser -S kanba -G kanba
+
 WORKDIR /app
 
 COPY --from=backend /kanba /app/kanba
 COPY --from=backend /app/web/out ./web/out
+
+RUN mkdir -p /app/data && chown kanba:kanba /app/data
 
 EXPOSE 8080
 
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-USER nobody
+USER kanba
 
 ENTRYPOINT ["/app/kanba"]

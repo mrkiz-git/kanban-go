@@ -29,9 +29,11 @@ Expected response:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `8080` | Host port mapped to the container |
+| `HOST_PORT` | `8080` | Host port mapped to the container (`PORT` is an alias) |
+| `CONTAINER_PORT` | `8080` | Port the Go server listens on inside the container |
 | `KANBA_IMAGE` | `kanba-go:local` | Podman image tag |
 | `KANBA_CONTAINER` | `kanba-go` | Container name |
+| `KANBA_DATA_VOLUME` | `<container>-data` | Named Podman volume for `/app/data` |
 
 Copy `.env.example` to `.env` for local reference. The container reads `PORT` and `HOST` at runtime.
 
