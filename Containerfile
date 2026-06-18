@@ -34,7 +34,7 @@ WORKDIR /app
 COPY --from=backend /kanba /app/kanba
 COPY --from=backend /app/web/out ./web/out
 
-RUN mkdir -p /app/data && chown kanba:kanba /app/data
+RUN mkdir -p /app/data/logs && chown -R kanba:kanba /app/data
 
 EXPOSE 8080
 

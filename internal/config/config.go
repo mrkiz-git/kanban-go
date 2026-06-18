@@ -1,12 +1,18 @@
 package config
 
-import "os"
+import (
+	"os"
+
+	"github.com/mrkiz-git/kanba-go/internal/logging"
+)
 
 const Version = "0.1.0"
 
 type Config struct {
-	Host string
-	Port string
+	Host     string
+	Port     string
+	LogLevel logging.Level
+	LogFile  string
 }
 
 func Load() Config {
@@ -21,8 +27,10 @@ func Load() Config {
 	}
 
 	return Config{
-		Host: host,
-		Port: port,
+		Host:     host,
+		Port:     port,
+		LogLevel: logging.ParseLevel(os.Getenv("LOG_LEVEL")),
+		LogFile:  os.Getenv("LOG_FILE"),
 	}
 }
 

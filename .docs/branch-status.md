@@ -58,7 +58,9 @@ Deliverables:
 - [x] `cmd/kanba/main.go` + `internal/` — server with `GET /api/health`
 - [x] `web/` — minimal Next.js static-export stub for Containerfile frontend stage
 - [x] `Containerfile` — multi-stage: Node → Go → Alpine
-- [x] `scripts/start.sh` — builds and runs via Podman
+- [x] `scripts/start.sh` — verbose, background, and container run modes
+- [x] `scripts/stop.sh` — stop background server or Podman container
+- [x] `internal/logging` — structured logging with `error`, `info`, and `debug` levels
 
 ---
 
