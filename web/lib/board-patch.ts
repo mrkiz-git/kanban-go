@@ -36,6 +36,16 @@ export function addCardPatch(columnIndex: number, title: string): JsonPatchOp[] 
   ];
 }
 
+export function addColumnPatch(title: string): JsonPatchOp[] {
+  return [
+    {
+      op: "add",
+      path: "/columns/-",
+      value: { title, position: 0, cards: [] },
+    },
+  ];
+}
+
 export function replaceBoardNamePatch(name: string): JsonPatchOp[] {
   return [{ op: "replace", path: "/name", value: name }];
 }

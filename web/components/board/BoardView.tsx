@@ -11,12 +11,12 @@ import { useRouter } from "next/navigation";
 import { CardModal, findCardColumn } from "@/components/board/CardModal";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { addCardPatch, moveCardPatch, replaceBoardNamePatch } from "@/lib/board-patch";
+import { addCardPatch, addColumnPatch, moveCardPatch, replaceBoardNamePatch } from "@/lib/board-patch";
 import { APIError } from "@/lib/api";
 import {
-  canWrite,
   deleteBoard,
   getBoard,
+  isReadOnly,
   patchBoard,
   type Board,
   type Card,
@@ -39,9 +39,13 @@ export function BoardView({ boardId }: BoardViewProps) {
   );
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [addingCardColumnId, setAddingCardColumnId] = useState<string | null>(null);
+  const [newCardTitle, setNewCardTitle] = useState("");
+  const [addingColumn, setAddingColumn] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState("");
 
   const permission = boards.find((item) => item.id === boardId)?.permission;
-  const readOnly = !canWrite(permission);
+  const readOnly = isReadOnly(permission);
 
   const loadBoard = useCallback(async () => {
     setError("");
@@ -64,7 +68,8 @@ export function BoardView({ boardId }: BoardViewProps) {
   useEffect(() => {
     setLoading(true);
     void loadBoard();
-  }, [loadBoard]);
+    void refreshBoards();
+  }, [loadBoard, refreshBoards]);
 
   async function applyPatch(patch: JsonPatchOp[], optimistic: Board) {
     if (!board) {
@@ -121,24 +126,55 @@ export function BoardView({ boardId }: BoardViewProps) {
     void applyPatch(patch, next);
   }
 
-  async function handleAddCard(columnId: string) {
+  async function handleAddCard(columnId: string, title = "New card") {
     if (!board || readOnly) {
+      return;
+    }
+    const trimmed = title.trim();
+    if (!trimmed) {
       return;
     }
     const colIdx = board.columns.findIndex((col) => col.id === columnId);
     if (colIdx < 0) {
       return;
     }
-    const title = "New card";
-    const patch = addCardPatch(colIdx, title);
+    const patch = addCardPatch(colIdx, trimmed);
     try {
       const updated = await patchBoard(board.id, board.version, patch);
       setBoard(updated);
+      setAddingCardColumnId(null);
+      setNewCardTitle("");
     } catch (err) {
       if (err instanceof APIError && err.status === 409) {
         await loadBoard();
       }
       setError(err instanceof Error ? err.message : "Failed to add card");
+    }
+  }
+
+  async function handleAddColumn(title = "New column") {
+    if (!board || readOnly) {
+      return;
+    }
+    const trimmed = title.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (board.columns.length >= 20) {
+      setError("A board can have at most 20 columns");
+      return;
+    }
+    const patch = addColumnPatch(trimmed);
+    try {
+      const updated = await patchBoard(board.id, board.version, patch);
+      setBoard(updated);
+      setAddingColumn(false);
+      setNewColumnTitle("");
+    } catch (err) {
+      if (err instanceof APIError && err.status === 409) {
+        await loadBoard();
+      }
+      setError(err instanceof Error ? err.message : "Failed to add column");
     }
   }
 
@@ -306,16 +342,102 @@ export function BoardView({ boardId }: BoardViewProps) {
               </Droppable>
 
               {!readOnly ? (
-                <button
-                  type="button"
-                  className="mx-2 mb-3 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-200"
-                  onClick={() => void handleAddCard(column.id)}
-                >
-                  + Add a card
-                </button>
+                addingCardColumnId === column.id ? (
+                  <form
+                    className="mx-2 mb-3 space-y-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleAddCard(column.id, newCardTitle);
+                    }}
+                  >
+                    <input
+                      className="w-full rounded border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-blue-600"
+                      placeholder="Card title"
+                      value={newCardTitle}
+                      onChange={(e) => setNewCardTitle(e.target.value)}
+                      maxLength={200}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button type="submit" className="px-3 py-1 text-xs" disabled={!newCardTitle.trim()}>
+                        Add card
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="px-3 py-1 text-xs"
+                        onClick={() => {
+                          setAddingCardColumnId(null);
+                          setNewCardTitle("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    className="mx-2 mb-3 rounded px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-200"
+                    onClick={() => {
+                      setAddingCardColumnId(column.id);
+                      setNewCardTitle("");
+                    }}
+                  >
+                    + Add a card
+                  </button>
+                )
               ) : null}
             </div>
           ))}
+
+          {!readOnly ? (
+            addingColumn ? (
+              <form
+                className="flex w-72 shrink-0 flex-col rounded-lg border border-dashed border-slate-300 bg-white p-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleAddColumn(newColumnTitle);
+                }}
+              >
+                <input
+                  className="rounded border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-blue-600"
+                  placeholder="Column title"
+                  value={newColumnTitle}
+                  onChange={(e) => setNewColumnTitle(e.target.value)}
+                  maxLength={100}
+                  autoFocus
+                />
+                <div className="mt-2 flex gap-2">
+                  <Button type="submit" className="px-3 py-1 text-xs" disabled={!newColumnTitle.trim()}>
+                    Add column
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="px-3 py-1 text-xs"
+                    onClick={() => {
+                      setAddingColumn(false);
+                      setNewColumnTitle("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="flex h-fit w-72 shrink-0 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-sm text-slate-700 hover:bg-slate-50"
+                onClick={() => {
+                  setAddingColumn(true);
+                  setNewColumnTitle("");
+                }}
+              >
+                + Add column
+              </button>
+            )
+          ) : null}
         </div>
       </DragDropContext>
 

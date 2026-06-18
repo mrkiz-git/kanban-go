@@ -79,5 +79,9 @@ export function deleteBoard(id: string) {
 }
 
 export function canWrite(permission: BoardPermission | undefined) {
-  return permission === "owner" || permission === "write";
+  return permission !== "read";
+}
+
+export function isReadOnly(permission: BoardPermission | undefined) {
+  return permission === "read";
 }
