@@ -119,9 +119,16 @@ Deliverables:
 
 ## part-06-database
 
-_Status: not started_
+_Status: complete_
 
 _No open issues._
+
+Deliverables:
+- [x] `internal/store/migrations/002_init_boards.up.sql` — boards, board_shares, columns, cards, attachments
+- [x] `internal/domain/board.go` — board domain types per `BOARD_SCHEMA.md`
+- [x] `internal/store/board.go` — BoardStore with CRUD, JSON Patch, shares, permission resolution
+- [x] `internal/store/errors.go` — shared store sentinel errors
+- [x] `internal/store/board_test.go` — repository tests (create, list, share, patch, delete)
 
 ---
 
