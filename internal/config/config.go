@@ -9,6 +9,7 @@ import (
 const Version = "0.1.0"
 
 const defaultJWTSecret = "dev-only-jwt-secret-change-in-production"
+const defaultAdminPassword = "changeme"
 
 type Config struct {
 	Host         string
@@ -65,7 +66,8 @@ func Load() Config {
 		adminName = "System Admin"
 	}
 
-	secureCookie := os.Getenv("KANBA_SECURE_COOKIE") == "1" || os.Getenv("KANBA_SECURE_COOKIE") == "true"
+	insecureCookie := os.Getenv("KANBA_INSECURE_COOKIE") == "1" || os.Getenv("KANBA_INSECURE_COOKIE") == "true"
+	secureCookie := !insecureCookie
 
 	return Config{
 		Host:          host,
@@ -88,4 +90,8 @@ func (c Config) Addr() string {
 
 func DefaultJWTSecret() string {
 	return defaultJWTSecret
+}
+
+func DefaultAdminPassword() string {
+	return defaultAdminPassword
 }

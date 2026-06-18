@@ -67,7 +67,7 @@ func TestRegisterAndLogin(t *testing.T) {
 	cookie := rec.Result().Cookies()
 	var tokenCookie *http.Cookie
 	for _, c := range cookie {
-		if c.Name == tokenCookieName {
+		if c.Name == auth.TokenCookieName {
 			tokenCookie = c
 			break
 		}
@@ -117,7 +117,7 @@ func TestMeRequiresAuth(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
-	req.AddCookie(&http.Cookie{Name: tokenCookieName, Value: token})
+	req.AddCookie(&http.Cookie{Name: auth.TokenCookieName, Value: token})
 	req = req.WithContext(auth.WithUser(req.Context(), auth.AuthUser{
 		ID:    user.ID,
 		Email: user.Email,
@@ -189,8 +189,32 @@ func TestSuspendedUserLogin(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", jsonBody(loginBody))
 	handler.Login(rec, req)
 
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("status = %d, want 403", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestRegisterDuplicateEmail(t *testing.T) {
+	handler, _, cleanup := setupAuthTest(t)
+	defer cleanup()
+
+	body := map[string]string{
+		"email":    "dup@example.com",
+		"password": "securepass123",
+		"name":     "Dup User",
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", jsonBody(body))
+	handler.Register(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("first register status = %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/api/auth/register", jsonBody(body))
+	handler.Register(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("duplicate register status = %d, want 409", rec.Code)
 	}
 }
 

@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mrkiz-git/kanba-go/internal/auth"
 	"github.com/mrkiz-git/kanba-go/internal/domain"
 	"github.com/mrkiz-git/kanba-go/internal/store"
 )
-
-const tokenCookieName = "kanba_token"
 
 var emailRegex = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
@@ -59,16 +58,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	name := strings.TrimSpace(req.Name)
 
-	exists, err := h.users.EmailExists(r.Context(), email)
-	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error", nil)
-		return
-	}
-	if exists {
-		writeAPIError(w, http.StatusConflict, "conflict", "Email is already registered", nil)
-		return
-	}
-
 	hash, err := auth.HashPassword(req.Password)
 	if err != nil {
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error", nil)
@@ -77,6 +66,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.users.Create(r.Context(), email, hash, name, domain.RoleUser)
 	if err != nil {
+		if store.IsDuplicateEmail(err) {
+			writeAPIError(w, http.StatusConflict, "conflict", "Email is already registered", nil)
+			return
+		}
 		writeAPIError(w, http.StatusInternalServerError, "internal_error", "internal error", nil)
 		return
 	}
@@ -111,12 +104,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Status == domain.StatusSuspended {
-		writeAPIError(w, http.StatusForbidden, "forbidden", "Account suspended", nil)
+	if !auth.CheckPassword(hash, req.Password) {
+		writeAPIError(w, http.StatusUnauthorized, "unauthorized", "Invalid email or password", nil)
 		return
 	}
 
-	if !auth.CheckPassword(hash, req.Password) {
+	if user.Status == domain.StatusSuspended {
 		writeAPIError(w, http.StatusUnauthorized, "unauthorized", "Invalid email or password", nil)
 		return
 	}
@@ -226,7 +219,7 @@ func validateRegister(req authRequest) error {
 
 func setTokenCookie(w http.ResponseWriter, token string, secure bool) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     tokenCookieName,
+		Name:     auth.TokenCookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
@@ -238,7 +231,7 @@ func setTokenCookie(w http.ResponseWriter, token string, secure bool) {
 
 func clearTokenCookie(w http.ResponseWriter, secure bool) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     tokenCookieName,
+		Name:     auth.TokenCookieName,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
@@ -255,6 +248,7 @@ func jsonDecode(r *http.Request, v any) error {
 }
 
 type loginRateLimiter struct {
+	mu     sync.Mutex
 	window time.Duration
 	limit  int
 	hits   map[string][]time.Time
@@ -269,6 +263,9 @@ func newLoginRateLimiter() *loginRateLimiter {
 }
 
 func (l *loginRateLimiter) Allow(ip string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	now := time.Now()
 	cutoff := now.Add(-l.window)
 

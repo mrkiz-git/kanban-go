@@ -75,7 +75,7 @@ func TestAdminEndpointRequiresAdminRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	req.AddCookie(&http.Cookie{Name: "kanba_token", Value: token})
+	req.AddCookie(&http.Cookie{Name: auth.TokenCookieName, Value: token})
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -113,7 +113,7 @@ func TestSuspendedUserCannotAccessProtectedRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	req.AddCookie(&http.Cookie{Name: "kanba_token", Value: token})
+	req.AddCookie(&http.Cookie{Name: auth.TokenCookieName, Value: token})
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

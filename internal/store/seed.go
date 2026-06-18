@@ -9,13 +9,13 @@ import (
 )
 
 func SeedAdmin(ctx context.Context, users *UserStore, email, passwordHash, name string) error {
-	_, _, err := users.GetByEmail(ctx, email)
-	if err == nil {
-		return nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	user, _, err := users.GetByEmail(ctx, email)
+	if errors.Is(err, sql.ErrNoRows) {
+		_, err = users.Create(ctx, email, passwordHash, name, domain.RoleAdmin)
 		return err
 	}
-	_, err = users.Create(ctx, email, passwordHash, name, domain.RoleAdmin)
-	return err
+	if err != nil {
+		return err
+	}
+	return users.UpdateCredentials(ctx, user.ID, passwordHash, name)
 }

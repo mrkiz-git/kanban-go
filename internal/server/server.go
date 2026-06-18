@@ -39,16 +39,16 @@ func New(cfg config.Config, deps Dependencies, logger *logging.Logger) *http.Ser
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authHandler.Register)
 			r.Post("/login", authHandler.Login)
-			r.Post("/logout", authHandler.Logout)
 
-		r.Group(func(r chi.Router) {
-			r.Use(appmiddleware.Auth(appmiddleware.AuthConfig{
-				Tokens: deps.Tokens,
-				Users:  deps.Users,
-			}))
-			r.Get("/me", authHandler.Me)
-			r.Post("/refresh", authHandler.Refresh)
-		})
+			r.Group(func(r chi.Router) {
+				r.Use(appmiddleware.Auth(appmiddleware.AuthConfig{
+					Tokens: deps.Tokens,
+					Users:  deps.Users,
+				}))
+				r.Get("/me", authHandler.Me)
+				r.Post("/refresh", authHandler.Refresh)
+				r.Post("/logout", authHandler.Logout)
+			})
 		})
 
 		r.Group(func(r chi.Router) {

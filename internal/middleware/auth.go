@@ -12,7 +12,10 @@ import (
 	"github.com/mrkiz-git/kanba-go/internal/store"
 )
 
-const tokenCookieName = "kanba_token"
+var (
+	errNoToken       = errors.New("no token")
+	errMalformedAuth = errors.New("malformed authorization")
+)
 
 type AuthConfig struct {
 	Tokens *auth.TokenService
@@ -22,9 +25,13 @@ type AuthConfig struct {
 func Auth(cfg AuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tokenStr := extractToken(r)
-			if tokenStr == "" {
+			tokenStr, err := extractToken(r)
+			if errors.Is(err, errNoToken) || errors.Is(err, errMalformedAuth) {
 				handler.WriteUnauthorized(w)
+				return
+			}
+			if err != nil {
+				handler.WriteAPIError(w, http.StatusInternalServerError, "internal_error", "internal error", nil)
 				return
 			}
 
@@ -81,17 +88,22 @@ func RequireRole(roles ...domain.UserRole) func(http.Handler) http.Handler {
 	}
 }
 
-func extractToken(r *http.Request) string {
+func extractToken(r *http.Request) (string, error) {
 	if header := r.Header.Get("Authorization"); header != "" {
 		const prefix = "Bearer "
-		if strings.HasPrefix(header, prefix) {
-			return strings.TrimSpace(header[len(prefix):])
+		if !strings.HasPrefix(header, prefix) {
+			return "", errMalformedAuth
 		}
+		token := strings.TrimSpace(header[len(prefix):])
+		if token == "" {
+			return "", errMalformedAuth
+		}
+		return token, nil
 	}
 
-	if cookie, err := r.Cookie(tokenCookieName); err == nil && cookie.Value != "" {
-		return cookie.Value
+	if cookie, err := r.Cookie(auth.TokenCookieName); err == nil && cookie.Value != "" {
+		return cookie.Value, nil
 	}
 
-	return ""
+	return "", errNoToken
 }

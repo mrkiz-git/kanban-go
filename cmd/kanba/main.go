@@ -29,6 +29,9 @@ func main() {
 	if cfg.JWTSecret == config.DefaultJWTSecret() {
 		logger.Info("using default JWT secret; set JWT_SECRET in production")
 	}
+	if cfg.AdminPassword == config.DefaultAdminPassword() {
+		logger.Info("using default admin password; set ADMIN_PASSWORD in production")
+	}
 
 	if err := ensureParentDir(cfg.DatabasePath); err != nil {
 		logger.Error("database path", "error", err)

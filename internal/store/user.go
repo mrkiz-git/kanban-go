@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,13 +61,26 @@ func (s *UserStore) GetByID(ctx context.Context, id string) (*domain.User, error
 	return user, err
 }
 
-func (s *UserStore) EmailExists(ctx context.Context, email string) (bool, error) {
-	var count int
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM users WHERE email = ?`, email).Scan(&count)
-	if err != nil {
-		return false, err
+func (s *UserStore) UpdateCredentials(ctx context.Context, id, passwordHash, name string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET password_hash = ?, name = ?, updated_at = ? WHERE id = ?`,
+		passwordHash, name, formatTime(time.Now().UTC()), id,
+	)
+	return err
+}
+
+func (s *UserStore) SetStatus(ctx context.Context, id string, status domain.UserStatus) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET status = ?, updated_at = ? WHERE id = ?`,
+		string(status), formatTime(time.Now().UTC()), id)
+	return err
+}
+
+func IsDuplicateEmail(err error) bool {
+	if err == nil {
+		return false
 	}
-	return count > 0, nil
+	msg := err.Error()
+	return strings.Contains(msg, "UNIQUE constraint failed") && strings.Contains(msg, "email")
 }
 
 func scanUserWithHash(row *sql.Row) (*domain.User, string, error) {
@@ -93,12 +107,6 @@ func scanUserWithHash(row *sql.Row) (*domain.User, string, error) {
 	}
 
 	return &u, passwordHash, nil
-}
-
-func (s *UserStore) SetStatus(ctx context.Context, id string, status domain.UserStatus) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET status = ?, updated_at = ? WHERE id = ?`,
-		string(status), formatTime(time.Now().UTC()), id)
-	return err
 }
 
 func formatTime(t time.Time) string {

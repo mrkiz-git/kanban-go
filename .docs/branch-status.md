@@ -94,6 +94,18 @@ _Status: complete_
 
 _No open issues._
 
+Code review fixes (all 10 issues resolved):
+- [x] loginRateLimiter data race — added `sync.Mutex` to rate limiter
+- [x] golang-migrate driver mismatch — switched to `database/sqlite` (modernc-compatible)
+- [x] Unauthenticated logout (CSRF) — logout moved inside `Auth` middleware group
+- [x] extractToken silent fallthrough — malformed `Authorization` header returns 401
+- [x] Account enumeration via suspended check — login returns 401 for suspended accounts
+- [x] SecureCookie defaults to false — secure cookies default on; `KANBA_INSECURE_COOKIE=1` opts out
+- [x] Default admin password has no warning — startup log when `ADMIN_PASSWORD` is default
+- [x] SeedAdmin ignores password rotation — updates password/name when admin already exists
+- [x] tokenCookieName duplicated — exported `auth.TokenCookieName`
+- [x] EmailExists TOCTOU in Register — rely on UNIQUE constraint; return 409 on duplicate
+
 Deliverables:
 - [x] SQLite users table with embedded migrations (`internal/store/migrations/`)
 - [x] JWT auth APIs: register, login, logout, me, refresh (`internal/handler/auth.go`)
