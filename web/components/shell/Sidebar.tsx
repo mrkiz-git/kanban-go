@@ -2,18 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
 };
 
-const ownedBoards = [
-  { id: "demo", name: "Demo Board" },
-];
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) {
+    return "?";
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <>
@@ -41,27 +50,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
             My Boards
           </p>
-          <ul className="mt-2 space-y-1">
-            {ownedBoards.map((board) => {
-              const href = `/boards/${board.id}/`;
-              const active = pathname === href;
-              return (
-                <li key={board.id}>
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    className={`block rounded px-2 py-2 text-sm ${
-                      active
-                        ? "bg-blue-50 font-medium text-blue-700"
-                        : "text-slate-900 hover:bg-slate-200"
-                    }`}
-                  >
-                    {board.name}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <p className="mt-2 px-2 text-sm text-slate-600">No boards yet.</p>
 
           <button
             type="button"
@@ -72,19 +61,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="border-t border-slate-200 px-4 py-4">
-          <Link
-            href="/admin/users/"
-            className="mb-3 block text-sm text-slate-700 hover:text-slate-900"
-          >
-            Admin
-          </Link>
+          {user?.role === "admin" ? (
+            <Link
+              href="/admin/users/"
+              className="mb-3 block text-sm text-slate-700 hover:text-slate-900"
+            >
+              Admin
+            </Link>
+          ) : null}
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
-              K
+              {user ? initials(user.name) : "?"}
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">Kanba User</p>
-              <button type="button" className="text-xs text-slate-600 hover:text-slate-900">
+              <p className="text-sm font-medium text-slate-900">{user?.name ?? "Guest"}</p>
+              <button
+                type="button"
+                className="text-xs text-slate-600 hover:text-slate-900"
+                onClick={() => logout()}
+              >
                 Sign out
               </button>
             </div>
