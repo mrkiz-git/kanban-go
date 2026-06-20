@@ -6,6 +6,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+.claude/settings.local.json
+scripts/.kanban-go-secrets.sh
 
 # Go
 *.exe
