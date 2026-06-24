@@ -121,16 +121,7 @@ Containerfile       Multi-stage: Node → Go → Alpine
 
 ## Documentation
 
-Contract and design docs live in [`.docs/`](.docs/):
-
-| Doc | Contents |
-|-----|----------|
-| [`PLAN.md`](.docs/PLAN.md) | Step-by-step development plan |
-| [`API.md`](.docs/API.md) | REST and WebSocket endpoints |
-| [`AUTH.md`](.docs/AUTH.md) | JWT, RBAC, permissions |
-| [`BOARD_SCHEMA.md`](.docs/BOARD_SCHEMA.md) | Board domain model |
-| [`DATABASE.md`](.docs/DATABASE.md) | SQLite schema and migrations |
-| [`MCP.md`](.docs/MCP.md) | MCP tool schemas |
+See [`.docs/index.md`](.docs/index.md) for all project documentation files.
 
 ## License
 

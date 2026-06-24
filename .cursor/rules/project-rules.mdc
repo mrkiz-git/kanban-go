@@ -5,16 +5,19 @@ alwaysApply: true
 
 # Project Context
 
-**Single source of truth:** `.docs/CONTEXT.md`
+**Shared context:** `.docs/CONTEXT.md`  
+**Documentation index:** `.docs/index.md`
 
 At the start of every conversation — and before answering questions about this project's stack, architecture, conventions, or communication style — read `.docs/CONTEXT.md` and follow it.
 
-That file defines:
+For which technical docs exist and what each file covers, read `.docs/index.md` only. Do not use duplicate doc lists elsewhere.
+
+`CONTEXT.md` defines:
 
 - Project overview and tech stack
-- Architecture and documentation map
+- Architecture
 - Behavioral guidelines
 - Communication protocol (ADHD-optimized)
-- Technical stack
+- Go and Docker/Podman implementation rules
 
 Do not duplicate or override that content here. For plan-step work (Parts 1–11), also follow the `plan-step-workflow` rule.

@@ -6,7 +6,7 @@ This file is the **single source of truth** for all agents working on this proje
 
 ## Project Overview
 
-Kanban web app: Go backend serves a Next.js static export, SQLite persistence, JWT auth, real-time board sync via WebSockets, MCP tools for AI agents, and an admin panel (planned).
+**Kanba Go** is a self-hosted Kanban app: Go backend, Next.js static frontend, SQLite. Users create and manage multiple boards, drag cards across columns, share boards with read-only or read-write access, and write card descriptions in Markdown with file attachments. Changes sync in real time over WebSockets—updates from another user or an AI agent (via MCP) appear instantly in the UI. JWT auth with RBAC separates regular users from admins, who manage users, boards, and system settings through a dedicated admin panel.
 
 ## Tech Stack
 
@@ -31,19 +31,7 @@ Kanban web app: Go backend serves a Next.js static export, SQLite persistence, J
 - Go serves the Next.js static export at `/` and REST + WebSocket APIs at `/api/*`.
 - Frontend lives in `web/`; build output goes to `web/out` (`STATIC_DIR`).
 - SQLite DB default: `/data/kanba.db` in container; overridable via `DATABASE_PATH`.
-- Contract docs in `.docs/` are the source of truth for API, auth, schema, UI, MCP.
-
-## Key Documentation
-
-| Doc | Contents |
-|-----|----------|
-| `PLAN.md` | Step-by-step development plan (11 parts) |
-| `API.md` | REST, WebSocket, admin, chat endpoints |
-| `AUTH.md` | JWT, RBAC, permissions |
-| `BOARD_SCHEMA.md` | Board domain model, JSON Patch, WebSocket events |
-| `DATABASE.md` | SQLite schema and migrations |
-| `UI.md` | Frontend design spec |
-| `MCP.md` | MCP tool schemas |
+- Documentation: [index.md](index.md)
 
 ---
 
