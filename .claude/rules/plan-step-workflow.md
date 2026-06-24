@@ -13,7 +13,7 @@ Run `git branch --show-current`.
 
 | Situation | Action |
 |-----------|--------|
-| On `main` | Create and checkout the part branch: `git checkout -b <branch-name>` |
+| On `main` | Create and checkout the part branch: `git checkout -b <branch-name>`, then immediately push it: `git push -u origin <branch-name>` |
 | On the correct part branch | Stay on it |
 | On a different part branch | Ask the user: finish current branch or switch? Do not switch silently |
 
