@@ -2,13 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  DragDropContext,
-  Draggable,
-  Droppable,
-  type DropResult,
-} from "@hello-pangea/dnd";
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
+import { BoardColumn } from "@/components/board/BoardColumn";
 import { CardModal, findCardColumn } from "@/components/board/CardModal";
+import { CardPreview } from "@/components/board/SortableCard";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { addCardPatch, addColumnPatch, moveCardPatch, replaceBoardNamePatch } from "@/lib/board-patch";
@@ -21,8 +33,21 @@ import {
   patchBoard,
   type Board,
   type Card,
+  type Column,
   type JsonPatchOp,
 } from "@/lib/boards";
+
+function findColumnId(columns: Column[], id: string): string | null {
+  if (columns.some((col) => col.id === id)) {
+    return id;
+  }
+  for (const col of columns) {
+    if (col.cards.some((card) => card.id === id)) {
+      return col.id;
+    }
+  }
+  return null;
+}
 import { useBoards } from "@/lib/boards-context";
 
 type BoardViewProps = {
@@ -45,8 +70,15 @@ export function BoardView({ boardId }: BoardViewProps) {
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [showCardPicker, setShowCardPicker] = useState(false);
+  const [activeCard, setActiveCard] = useState<Card | null>(null);
   const addColumnRef = useRef<HTMLDivElement>(null);
   const boardScrollRef = useRef<HTMLDivElement>(null);
+  const dragStartBoard = useRef<Board | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const permission = boards.find((item) => item.id === boardId)?.permission;
   const readOnly = isReadOnly(permission);
@@ -134,39 +166,132 @@ export function BoardView({ boardId }: BoardViewProps) {
     }
   }
 
-  function handleDragEnd(result: DropResult) {
-    if (!board || readOnly || !result.destination) {
+  function handleDragStart(event: DragStartEvent) {
+    if (!board) {
       return;
     }
-    const { source, destination } = result;
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+    dragStartBoard.current = board;
+    const card = board.columns
+      .flatMap((col) => col.cards)
+      .find((item) => item.id === event.active.id);
+    setActiveCard(card ?? null);
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!board || readOnly || !over) {
       return;
     }
 
-    const next = structuredClone(board);
-    const sourceCol = next.columns.find((col) => col.id === source.droppableId);
-    const destCol = next.columns.find((col) => col.id === destination.droppableId);
-    if (!sourceCol || !destCol) {
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const activeColumnId = findColumnId(board.columns, activeId);
+    const overColumnId = findColumnId(board.columns, overId);
+    if (!activeColumnId || !overColumnId) {
       return;
     }
 
-    const [moved] = sourceCol.cards.splice(source.index, 1);
-    destCol.cards.splice(destination.index, 0, moved);
-    sourceCol.cards.forEach((card, index) => {
-      card.position = index;
+    if (activeColumnId === overColumnId) {
+      const column = board.columns.find((col) => col.id === activeColumnId);
+      if (!column) {
+        return;
+      }
+      const activeIndex = column.cards.findIndex((card) => card.id === activeId);
+      const overIndex = column.cards.findIndex((card) => card.id === overId);
+      if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+        return;
+      }
+
+      setBoard((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        const next = structuredClone(prev);
+        const targetCol = next.columns.find((col) => col.id === activeColumnId);
+        if (!targetCol) {
+          return prev;
+        }
+        targetCol.cards = arrayMove(targetCol.cards, activeIndex, overIndex);
+        targetCol.cards.forEach((card, index) => {
+          card.position = index;
+        });
+        return next;
+      });
+      return;
+    }
+
+    setBoard((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      const next = structuredClone(prev);
+      const sourceCol = next.columns.find((col) => col.id === activeColumnId);
+      const destCol = next.columns.find((col) => col.id === overColumnId);
+      if (!sourceCol || !destCol) {
+        return prev;
+      }
+
+      const activeIndex = sourceCol.cards.findIndex((card) => card.id === activeId);
+      if (activeIndex < 0) {
+        return prev;
+      }
+
+      let overIndex = destCol.cards.findIndex((card) => card.id === overId);
+      if (overIndex < 0) {
+        overIndex = destCol.cards.length;
+      }
+
+      const [moved] = sourceCol.cards.splice(activeIndex, 1);
+      destCol.cards.splice(overIndex, 0, moved);
+      sourceCol.cards.forEach((card, index) => {
+        card.position = index;
+      });
+      destCol.cards.forEach((card, index) => {
+        card.position = index;
+      });
+      return next;
     });
-    destCol.cards.forEach((card, index) => {
-      card.position = index;
-    });
+  }
 
-    const patch = moveCardPatch(
-      board.columns,
-      source.droppableId,
-      source.index,
-      destination.droppableId,
-      destination.index,
-    );
-    void applyPatch(patch, next);
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveCard(null);
+    const start = dragStartBoard.current;
+    dragStartBoard.current = null;
+
+    if (!board || readOnly || !start) {
+      return;
+    }
+
+    const { active, over } = event;
+    if (!over) {
+      setBoard(start);
+      return;
+    }
+
+    const activeId = String(active.id);
+    const startCol = start.columns.find((col) => col.cards.some((card) => card.id === activeId));
+    const endCol = board.columns.find((col) => col.cards.some((card) => card.id === activeId));
+    if (!startCol || !endCol) {
+      setBoard(start);
+      return;
+    }
+
+    const startIndex = startCol.cards.findIndex((card) => card.id === activeId);
+    const endIndex = endCol.cards.findIndex((card) => card.id === activeId);
+    if (startCol.id === endCol.id && startIndex === endIndex) {
+      return;
+    }
+
+    const patch = moveCardPatch(start.columns, startCol.id, startIndex, endCol.id, endIndex);
+    void applyPatch(patch, board);
+  }
+
+  function handleDragCancel() {
+    if (dragStartBoard.current) {
+      setBoard(dragStartBoard.current);
+    }
+    dragStartBoard.current = null;
+    setActiveCard(null);
   }
 
   async function handleAddCard(columnId: string, title = "New card") {
@@ -372,116 +497,71 @@ export function BoardView({ boardId }: BoardViewProps) {
         </div>
       ) : null}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
         <div ref={boardScrollRef} className="flex min-h-0 flex-1 gap-4 overflow-x-auto p-4">
           {board.columns.map((column) => (
-            <div
+            <BoardColumn
               key={column.id}
-              className="flex w-72 shrink-0 flex-col rounded-lg bg-slate-100"
-            >
-              <div className="flex items-center justify-between px-3 py-3">
-                <h2 className="text-lg font-semibold text-slate-900">{column.title}</h2>
-                <span className="text-xs text-slate-600">{column.cards.length}</span>
-              </div>
-
-              <Droppable droppableId={column.id} isDropDisabled={readOnly}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`flex min-h-32 flex-1 flex-col gap-2 px-2 pb-2 ${
-                      snapshot.isDraggingOver ? "bg-blue-50/60" : ""
-                    }`}
-                  >
-                    {column.cards.length === 0 &&
-                    !readOnly &&
-                    addingCardColumnId !== column.id ? (
-                      <button
-                        type="button"
-                        className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/60 px-3 py-6 text-sm text-slate-600 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700"
-                        onClick={() => startAddCard(column.id)}
-                      >
-                        + Add first card
-                      </button>
-                    ) : null}
-                    {column.cards.map((card, index) => (
-                      <Draggable
-                        key={card.id}
-                        draggableId={card.id}
-                        index={index}
-                        isDragDisabled={readOnly}
-                      >
-                        {(dragProvided, dragSnapshot) => (
-                          <button
-                            type="button"
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                            className={`rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition-shadow ${
-                              dragSnapshot.isDragging ? "shadow-lg" : ""
-                            }`}
-                            onClick={() => setSelectedCard({ columnId: column.id, card })}
-                          >
-                            <p className="text-sm font-medium text-slate-900">{card.title}</p>
-                            {card.description ? (
-                              <p className="mt-1 line-clamp-2 text-xs text-slate-600">
-                                {card.description}
-                              </p>
-                            ) : null}
-                          </button>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+              column={column}
+              readOnly={readOnly}
+              addingCardColumnId={addingCardColumnId}
+              onSelectCard={(columnId, card) => setSelectedCard({ columnId, card })}
+              onStartAddCard={startAddCard}
+              addCardForm={
+                <form
+                  className="mx-2 mb-3 space-y-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleAddCard(column.id, newCardTitle);
+                  }}
+                >
+                  <input
+                    className="w-full rounded border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-blue-600"
+                    placeholder="Card title"
+                    value={newCardTitle}
+                    onChange={(e) => setNewCardTitle(e.target.value)}
+                    maxLength={200}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      className="px-3 py-1 text-xs"
+                      disabled={!newCardTitle.trim()}
+                    >
+                      Add card
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="px-3 py-1 text-xs"
+                      onClick={() => {
+                        setAddingCardColumnId(null);
+                        setNewCardTitle("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
                   </div>
-                )}
-              </Droppable>
-
-              {!readOnly ? (
-                addingCardColumnId === column.id ? (
-                  <form
-                    className="mx-2 mb-3 space-y-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void handleAddCard(column.id, newCardTitle);
-                    }}
-                  >
-                    <input
-                      className="w-full rounded border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-blue-600"
-                      placeholder="Card title"
-                      value={newCardTitle}
-                      onChange={(e) => setNewCardTitle(e.target.value)}
-                      maxLength={200}
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button type="submit" className="px-3 py-1 text-xs" disabled={!newCardTitle.trim()}>
-                        Add card
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="px-3 py-1 text-xs"
-                        onClick={() => {
-                          setAddingCardColumnId(null);
-                          setNewCardTitle("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
-                  <button
-                    type="button"
-                    className="mx-2 mb-3 rounded border border-slate-200 bg-white px-2 py-2 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
-                    onClick={() => startAddCard(column.id)}
-                  >
-                    + Add a card
-                  </button>
-                )
-              ) : null}
-            </div>
+                </form>
+              }
+              addCardButton={
+                <button
+                  type="button"
+                  className="mx-2 mb-3 rounded border border-slate-200 bg-white px-2 py-2 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
+                  onClick={() => startAddCard(column.id)}
+                >
+                  + Add a card
+                </button>
+              }
+            />
           ))}
 
           {!readOnly ? (
@@ -531,7 +611,8 @@ export function BoardView({ boardId }: BoardViewProps) {
             </div>
           ) : null}
         </div>
-      </DragDropContext>
+        <DragOverlay>{activeCard ? <CardPreview card={activeCard} /> : null}</DragOverlay>
+      </DndContext>
 
       {selectedCard ? (
         <CardModal

@@ -66,3 +66,6 @@ temp/
 
 # Generated from scripts/setup-cursor-mcp.sh (contains PAT)
 .cursor/mcp.json
+
+# Agents & MCP Configs
+.agents/mcp_config.json

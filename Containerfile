@@ -9,7 +9,7 @@ COPY web/ ./
 RUN npm run build
 
 # Stage 2: Build Go binary
-FROM docker.io/golang:1.23-alpine AS backend
+FROM docker.io/golang:1.25-alpine AS backend
 
 WORKDIR /app
 

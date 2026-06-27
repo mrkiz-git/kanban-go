@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "jsdom": "^27.0.1",
+    "mcp-atlassian": "^2.1.0"
+  }
+}
